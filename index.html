@@ -1,0 +1,132 @@
+<html><head><base href="https://biblestudyapp.websim.ai" />
+<title>BibleStudy PWA</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4A90E2">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="apple-touch-icon" href="/icon-192x192.png">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+  }
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  h1 {
+    color: #4A90E2;
+    text-align: center;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  button {
+    background-color: #4A90E2;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #357ABD;
+  }
+  #verseDisplay {
+    margin-top: 20px;
+    font-size: 18px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>BibleStudy PWA</h1>
+    <select id="bookSelect">
+      <option value="">Selecione um livro</option>
+    </select>
+    <select id="chapterSelect">
+      <option value="">Selecione um capítulo</option>
+    </select>
+    <button id="getVerseBtn">Obter Versículo</button>
+    <div id="verseDisplay"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://www.abibliadigital.com.br/api';
+    const bookSelect = document.getElementById('bookSelect');
+    const chapterSelect = document.getElementById('chapterSelect');
+    const getVerseBtn = document.getElementById('getVerseBtn');
+    const verseDisplay = document.getElementById('verseDisplay');
+
+    // Carregar livros da Bíblia
+    fetch(`${API_URL}/books`)
+      .then(response => response.json())
+      .then(books => {
+        books.forEach(book => {
+          const option = document.createElement('option');
+          option.value = book.abbrev.pt;
+          option.textContent = book.name;
+          bookSelect.appendChild(option);
+        });
+      });
+
+    // Atualizar capítulos quando um livro é selecionado
+    bookSelect.addEventListener('change', () => {
+      const selectedBook = bookSelect.value;
+      chapterSelect.innerHTML = '<option value="">Selecione um capítulo</option>';
+      if (selectedBook) {
+        fetch(`${API_URL}/books/${selectedBook}`)
+          .then(response => response.json())
+          .then(book => {
+            for (let i = 1; i <= book.chapters; i++) {
+              const option = document.createElement('option');
+              option.value = i;
+              option.textContent = `Capítulo ${i}`;
+              chapterSelect.appendChild(option);
+            }
+          });
+      }
+    });
+
+    // Obter versículo quando o botão é clicado
+    getVerseBtn.addEventListener('click', () => {
+      const selectedBook = bookSelect.value;
+      const selectedChapter = chapterSelect.value;
+      if (selectedBook && selectedChapter) {
+        fetch(`${API_URL}/verses/nvi/${selectedBook}/${selectedChapter}`)
+          .then(response => response.json())
+          .then(chapter => {
+            let verseText = `<h2>${chapter.book.name} ${chapter.chapter.number}</h2>`;
+            chapter.verses.forEach(verse => {
+              verseText += `<p><strong>${verse.number}.</strong> ${verse.text}</p>`;
+            });
+            verseDisplay.innerHTML = verseText;
+          });
+      } else {
+        alert('Por favor, selecione um livro e um capítulo.');
+      }
+    });
+
+    // Registrar o Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registrado com sucesso:', registration.scope);
+          })
+          .catch(error => {
+            console.log('Falha ao registrar o Service Worker:', error);
+          });
+      });
+    }
+  </script>
+</body></html>
